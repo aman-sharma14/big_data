@@ -613,32 +613,67 @@ db.collection.aggregate([
 ])
 ```
 
-### Pipeline Stages:
+# MongoDB Aggregation — Quick Reference
 
-| Stage | What it does |
-|-------|-------------|
-| `$match` | Filters documents (like `find`) |
-| `$group` | Groups documents, computes aggregates |
-| `$project` | Reshapes documents (show/hide/compute fields) |
-| `$sort` | Sorts documents |
-| `$limit` | Limits number of documents |
-| `$skip` | Skips documents |
-| `$unwind` | Flattens array field into individual documents |
-| `$count` | Counts documents |
+---
 
-### Aggregate Expressions:
+## Pipeline Stages
 
-| Expression | What it does |
-|-----------|-------------|
-| `$sum` | Sum values |
-| `$avg` | Average of values |
-| `$max` | Maximum value |
-| `$min` | Minimum value |
-| `$count` | Count documents |
-| `$push` | Collect values into array |
-| `$addToSet` | Collect unique values into array |
-| `$first` | First value in group |
-| `$last` | Last value in group |
+| Stage | What it does | Example |
+|-------|-------------|---------|
+| `$match` | Filters documents (like `find`) | `{ $match: { "is_published": true } }` |
+| `$group` | Groups documents, computes aggregates | `{ $group: { _id: "$author", "Total": { $sum: 1 } } }` |
+| `$project` | Reshapes documents (show/hide/compute fields) | `{ $project: { _id: 0, title: 1, "Count": { $size: "$comments" } } }` |
+| `$sort` | Sorts documents | `{ $sort: { "Total Likes": -1 } }` |
+| `$limit` | Limits number of documents | `{ $limit: 5 }` |
+| `$skip` | Skips documents | `{ $skip: 10 }` |
+| `$unwind` | Flattens array field into individual documents | `{ $unwind: "$grades" }` |
+| `$count` | Counts documents | `{ $count: "published_count" }` |
+
+---
+
+## Aggregate Expressions (used inside `$group` / `$project`)
+
+| Expression | What it does | Example |
+|-----------|-------------|---------|
+| `$sum` | Sum values | `{ $group: { _id: "$dept", "Total Sal": { $sum: "$salary" } } }` |
+| `$avg` | Average of values | `{ $group: { _id: null, "Avg Likes": { $avg: "$likes" } } }` |
+| `$max` | Maximum value | `{ $group: { _id: null, "Max Score": { $max: "$grades.score" } } }` |
+| `$min` | Minimum value | `{ $group: { _id: null, "Min Score": { $min: "$grades.score" } } }` |
+| `$count` | Count documents | `{ $count: "total" }` |
+| `$push` | Collect values into array (allows duplicates) | `{ $group: { _id: "$dept", "Names": { $push: "$name" } } }` |
+| `$addToSet` | Collect unique values into array | `{ $group: { _id: "$dept", "Cuisines": { $addToSet: "$cuisine" } } }` |
+| `$first` | First value in group | `{ $group: { _id: "$author", "First Post": { $first: "$title" } } }` |
+| `$last` | Last value in group | `{ $group: { _id: "$author", "Last Post": { $last: "$title" } } }` |
+
+---
+
+## Full Pipeline Example (combining stages)
+
+```js
+db.posts.aggregate([
+  { $match: { "is_published": true } },         // Stage 1: filter
+  { $unwind: "$tags" },                          // Stage 2: flatten tags array
+  { $group: {                                    // Stage 3: group & compute
+      _id: "$author",
+      "Total Likes": { $sum: "$likes" },
+      "All Tags": { $addToSet: "$tags" }
+  }},
+  { $match: { "Total Likes": { $gt: 100 } } },  // Stage 4: HAVING filter
+  { $sort: { "Total Likes": -1 } },              // Stage 5: sort
+  { $skip: 0 },                                  // Stage 6: skip (pagination)
+  { $limit: 5 },                                 // Stage 7: limit
+  { $project: {                                  // Stage 8: reshape output
+      _id: 0,
+      author: "$_id",
+      "Total Likes": 1,
+      "All Tags": 1
+  }}
+])
+```
+
+> **Key Rule:** `$match` BEFORE `$group` = WHERE (filter documents first).  
+> `$match` AFTER `$group` = HAVING (filter the grouped results).
 
 ---
 
