@@ -235,12 +235,12 @@ db.emp.find({ "dept": { $nin: ["HR", "IT"] } })
 db.posts.find({ "tags": { $in: ["mongodb", "python"] } })
 ```
 
-> **⚠️ Edge Case**: `$in` and `$nin` work with **exact values only** — they do NOT accept regex patterns reliably in older MongoDB versions. For regex exclusions, use `$and` + `$not` instead:
+> **⚠️ Edge Case**: `$in` and `$nin` work with **both exact values and regex patterns**. :
 ```js
-// WRONG approach (unreliable)
+// Both Works
 db.posts.find({ "cuisine": { $nin: [/American/i, /Chinese/i] } })
 
-// CORRECT approach
+// 
 db.posts.find({
   $and: [
     { "cuisine": { $not: /American/i } },
