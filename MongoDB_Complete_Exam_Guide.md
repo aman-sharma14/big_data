@@ -399,6 +399,15 @@ db.posts.find({ "comments": { $size: 3 } })
 ```
 
 > **⚠️ Edge Case**: `$size` only accepts exact numbers. You CANNOT do `{ $size: { $gt: 2 } }`. To check array length > N, use index trick instead.
+> If you want to check if the array size is less than N, you can still use the "index trick."
+
+For example, to check if the array length is less than 3 (i.e., 0, 1, or 2 elements), you would check if the element at index 2 (the 3rd element) does not exist (i.e., $exists: false).
+{
+  "yourArrayField.2": {
+    "$exists": false
+  }
+}
+
 
 ### Checking array length > N (index trick)
 ```js
