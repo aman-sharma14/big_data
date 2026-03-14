@@ -1,0 +1,104 @@
+Replication in MongoDB - copy the data
+    Diagram
+
+    need -
+        Availability
+        Redundancy
+        Disaster recovery
+        fault tolerance
+        backup
+        reporting
+        
+
+    Replication - 
+    diagram
+        Process that ens
+        ures, same data is available on more than 1 mongoDB server
+        required for increasing data availability
+
+        Fault Tolerance - If the Primary server fails, data is still accessible from another server.
+        Load Balancing - Distributes "Read" traffic across multiple servers so single server doesn't get overwhelmed.
+
+        MongoDB groups servers into Replica Sets, which has - 
+            Primary Server - handles all Write ops (insert, update, delete) from clients (can Read as well)
+            Secondary Servers (worker) - can be used for all Read operations to balance the load
+                                replicates data from primary
+
+
+    Oplog (operation log) of primary - 
+        used by primary server to record all changes to its data sets
+        oplog is a capped collection and has timestamps
+        secondary replicates this oplog and applies these changes to its own data sets (asynchronously)
+
+    Heartbeat - 
+        members in replica set send heatbeats to each other every 2 seconds
+        if no heartbeat for 10 seconds from one member, others mark this member as inaccessible
+
+    Arbiter - 
+    diagram
+        special secondary server, doesnt store any data
+        only used for election process (voting process for changing primary server)
+        used when cost prevents adding a full Secondary node but you need an extra vote for elections (tie-breaker)
+        an arbiter always stays an arbiter, unlike primary/secondary nodes which can switch
+
+    Voting - 
+        Replica Set Limit: Can have up to 50 members total.
+        voting members - only 7 members (including primary) can vote
+        non-voting - rest 43 are read only nodes that cant vote
+
+
+    Code (steps for replication)
+
+-----------------------------------------------------------------------------------------------------------------
+
+Sharding - split the data
+diagram
+    need - 
+        huge volume of data in modern systems
+        single server becomes slow and overloaded
+        sharding helps distribute data accross multiple servers
+        gives scalability and high performance
+    
+    sharding - 
+    arch diagram
+        horizontal partitioning of data
+        large collection is split across multiple servers called Shards
+        Each shard stores only a portion of data
+        All shards together represent the full dataset
+
+        shard - stores subset of data
+        config server - Stores metadata (information about how data is distributed across shards)
+        mongos (Query Router) - interface between client application and shards
+            directs queries to correct shard, based on data request
+
+    Steps - 
+        client -> send query to mongos -> asks config server -> says "shard2" -> 
+        mongos -> sends query to shard2 -> result sent to client
+    
+    Shard key - 
+        field that decides how data is distributed
+        should have -
+            high cardinality, needs many unique values (user_id better than gender)
+            evenly distribute data, to avoid overloading a single shard
+        
+        bad shard key (timestamp for a high-traffic app) causes all writes to hit one shard,
+        creating a performance bottleneck (Hotspot problem)
+
+        techniques - 
+            Range-based – data divided into continuous ranges
+                eg Shard A gets IDs 1-1000, Shard B gets IDs 1001-2000
+
+                but leads to hotspots if data is inserted in a sorted order 
+                    like dates
+                    shard A - Jan 1to10, shard B - Jan 2to20 ...
+                    On Jan 2, 100% of the traffic goes to Shard A
+                    Shard A becomes a "Hotspot" because it's overloaded, while other shards sit idle
+                    
+
+            Hash-based – hash function is applied to the shard key value, to determine the destination shard
+                distributes users randomly, but evenly across all shards
+                not efficient for range-based queries as related data is scattered
+        
+each shard is a replica set (data inside shard is replicated)
+together provides scalability + fault tolerance
+diagram (sharding + replication)
