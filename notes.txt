@@ -1,3 +1,352 @@
+System -
+    Centralized systems - 
+        single server manages all data and services, easier to maintain and control
+        but risk of single point of failure
+        eg : college attendance system stored on one server
+            early railway booking system (could only book tickets from particular stations)
+            Local Library Database
+        thus more usefull in small organizations
+
+        adv-  
+            inconsistency not a problem
+        disadv - 
+            less availability, single point of failure
+
+    Distributed systems - 
+        data & processing distributed accross multiple connected systems
+        fault tolerant (one fails, others still work)
+        high Scalability
+        has one primary node (central) , assigning work to multiple distributed systems
+        used by google and amazon(ecom)
+        eg : ?
+
+    Decentralized systems -
+        No central controlling authority
+        each node works independently, but collaborates
+        highly secure and transparent
+        eg : blockchain network, bitcoin, P2P file sharing
+
+        Decentralized systems are always distributed systems
+
+Types of Data -
+    structured - 
+        bank records, hospital db, academic records, retail billing data, credit card transaction data
+    unstructured - 
+        pdf files, social media images & videos, customer reviews, medical scans (MRI, CT)
+    Semi-structured - 
+        JSON records from APIs, HTML pages, email(structured headers + unstructured body)
+        contains tags, delimiters to seperate data elements
+
+Big Data - 
+    Data that is too large, fast or complex for traditional systems
+    cannot be processed using RDBMS or excel
+    requires distributed storage and processing tools like hadoop and spark
+
+    3 Vs - (characteristics)
+        Volume - Huge Size (TB -> PB)
+        Velocity - Data generated at high speed
+        Variety - Many different formats
+    Need -
+        real time decision making
+        improving business efficiency (customer retention)
+        analyse customer behaviour
+        handle massive diverse data 
+        accurate predictions (AI ML)
+    UseCases - 
+        Healthcare - disease prediction
+        retail - product recommendations
+        finance - fraud detection
+        transport - fare optimization
+    Structure - 
+        combo of structured, semi and un structured (supports all formats)
+        eg : social media posts having text, images, vidoes, reactions etc
+    Storage - 
+        Hadoop Distributed File System
+        Cloud : AWS S3, Google cloud, azure blob
+        NoSQL : MongoDB, Cassandra
+        Data Lakes store raw data, while Data Warehouses store processed data.
+    Processing - 
+        Batch : Large chunks of data, processed at intervals (Monthly bank statements) (Spark, MapReduce)
+        Real-Time : Streaming data, processed instantly (Stock market updates, RTGS) (Kafka, Flink)
+        Hybrid : Batch + Real time (Netflix analytics)
+    
+
+Q If colege suddenly receives 10,000 student login requests every minute, attendance etc data 
+would current centralized college system be enough?
+If not, what changes would we make to convert into big data system
+    >> No cause It uses a single server, so handling 10,000 login requests per minute will overload it.
+    It has a single point of failure → if the server crashes, attendance and related services stop.
+    Centralized systems are suitable only for small organizations, not for high-volume, high-speed access.
+    Such high request rate shows high velocity, which traditional systems cannot handle efficiently.
+
+    A distributed system is chosen instead of a decentralized system because the college system 
+    still requires central control, coordination, and authority, which decentralized systems do not provide.
+
+    use big data storage like HDFS or cloud (for raw, unstructured data) (making it Data lake) and NoSQL DBs (for semi/structured) (making it Data WH)
+    can use real time processing for continious login requests, using Kafka, and batch processing for historical data
+    as system currently deals with high Volume (many students) and high Velocity (10K/min), its a big data problem
+
+CAP theorem - 
+    Diagram
+    Brewer's theorem
+    Consistency, Availability, Partition tolerance
+
+    So we know ACID (Atomicity, Consistency, Isolation, Durable) has many limitations in distributed systems,
+    ACID properties are weakened here, to survive CAP
+
+    Statement : It is not possible to guarantee all three of the desirable properties - consistency, Availability and Partition tolerance
+    at the same in a distributed system with data replication.
+
+    CAP theorem is a constraint on distributed systems with replication
+    Only 2 at a time, one has to be compromised
+    eg - Banks : Consistency is more important, they compromise Availability (server downtimes)
+        Facebook/insta : value Availability, work with eventual consistency
+
+    combinations -
+        CP - 
+            Prioritize C and P over A 
+            ensures that all nodes in system, have same consistent view of data,
+            even in presence of network partitions
+            If Partition occurs and a minority of nodes are isolated, the system sacrifices Availability (of isolated nodes) unitl the partition is resolved
+            eg : banking transaction - all systems must agree on new account balances, before transaction is complete
+
+        AP - 
+            Focus on providing high A and P, even at the expense of sacrificing strong C
+            Prioritize responsives and ensure that system remains available to clients, even if it means allowing temporary inconsistencies in data
+            may use eventual consistency    
+            eg: Social media feeds (pfp can come late, but insta shouldnt shut down), e-com product catalogs
+        CA - 
+            balance between C and A 
+            aim to provide C and A, but not at same level as CP or AP systems
+            more like traditional systems, follows ACID
+            its not realistic in distributed systems as it assumes no paritions
+            eg : smaller systems where partition highly unlikely
+
+
+
+Base Theorem - Basically Available Soft State Eventually consistent
+    Eric Brewer 
+    it is a design approach for AP systems, it is how you implement an AP system under CAP 
+
+    BASICALLY AVAILABLE means system will be available in terms of CAP
+    SOFT State means even if no input provided, state will change over time i.e eventual consistency,
+    which means, system will attain consistency eventually, if no input is sent during that time
+
+    CA - Not Base, Strong consistency, High Availability
+    CP - Not BASE, Strong C, may sacrifice A 
+    AP - BASE fits, eventual C, always available
+    thus, base is implementation of AP, its not connected to the other two
+
+
+
+NRW Notations - 
+    implementation of Eventual Consistency may vary accorss different NoSql DBs 
+    these notations are used to describe how eventual consistency model is implemented accross NoSQL DBs where - 
+        N is number of data copies that the DB maintains
+        R is number of copies an application needs to refer to, before returning output of read request
+        W is number of copies that need to be written to, before write operation is marked completed
+
+    Write Operations- 
+        N = W : updates all data copies before returning control to client, and marking as succesfull
+            slows down performance (hight latency)
+        W = 1, R = N : updates any one copy amd marks write as succesfull
+            whenever read req, it will read all copies to return result
+            very fast writes
+        N > W > 1 : succesfull write to be done to nodes greater than one, but not all at same time 
+            reduces probability of reading outdated data, while ensuring efficient writing
+
+    Read Operations-
+        R = 1 : reads any one copy, which can be outdated
+        R > 1 : more than one copy is read, but slows down read operation (timestamp based)
+        N < W+R : read operation in such case retrieves latest value
+    
+    Eg - 
+        whatsapp profile pic updated, some friends saw it immediately, some see old one for few seconds
+        if whatsapp has 3 servers (N = 3)
+        Q if W = 1 , what might users observe immediately after update
+        -> less consistency, some may see update, some may not
+        Q what would change if W = 3
+        -> slow updates but better consistency
+        Q which gives better speed , and which gives better consistency
+        -> speed : W=1, consistency : W = 3
+
+        Order placed on amazon, on app they see confirmedm but website shows pending for few mins 
+        amazon may use N = 5 replicas
+        Q what would be the W, that causes delay ?
+        -> W = 1 (R maybe 1 too) 
+            but, why not W = 5 (like, writing to 5 may take time and hence delay)
+            > cause, this would just cause latency for update accross all users, 
+            our problem is about some seing update, some not, so W would be 1 to cause that 
+        Q would you choose W = 3 or 1? why ?
+        -> w =3, as that would be balance (N > w > 1) which leads to R = 3 , thus N < W + R
+        Q if customers must always see correct status, what should be R (high or low)?
+        -> High , R = w, or maybe high enough such that W + R > N 
+
+         
+ACID vs BASE - 9
+    Full Form -
+    Consistency - 
+        -Strong, all transactions fully consistent after commit
+        -Eventual, data may remain temporarily inconsistent, but converges over time
+    Availability - 
+        -sacrifices in some cases (durimg partitions or locks)
+        -Prioritizes even during paritions or failures
+    Partition tolerance -
+        -Limited/weak, designed for single-node systems
+        -Built for it, distributed systems
+    Transaction Support - 
+        -supports complex multistep transactions with rollback
+        -limited operation transactions
+    Use Cases - 
+        -Traditional banks, payment systems, inventory control
+        -Social media, e-commerce product catalogs, large scale distributed apps
+    Performance - 
+        -slower due to strict consistency
+        -optimized for high availability and Scalability, Faster
+    State - 
+        -Strong, stable state immediately after transactions
+        -soft state
+    Typical Systems-
+        -Oracle, MySQL, postgreSQL
+        -Cassandra, DynamoDB, Riak
+
+NoSQL - 
+    Features:
+        Scalability - Supports horizontal scaling (adding more servers) easily
+        Flexibility - Schema-less models allow storage of various data structures
+        High Performance - optimized for fast read/write ops for big datasets
+        handling big data - efficient for managing massive un/semi-structured data
+        real time application - cases needing quick response times like chats, gaming etc
+
+    doesnt enforce concept of primary/foreign key, joins and all which slow it down
+    uses eventual consistency, unlike SQL (uses ACID)
+    suited where schema is dynmaic, not fixed
+    Types- 
+        Key Value - 
+            Store data as simple key value pairs.
+            great for session mngmt where each session retrieved using unique session id
+
+            eg - 
+            "session123":{"user_id":"user123", "login_time":"123"}
+            "session123":{"user_id":"user456", "login_time":"456"}
+
+            (doubt - can we have integers as key here) -> yes
+            
+            Riak
+            DynamoDB
+        
+        Document - 
+            stores data as documents with nested structures, suitable for complex nested data
+            
+            MongoDB
+
+            eg - 
+            [
+                {
+                    "id": 123,
+                    "name" : "Alice",
+                    "friends" : [456, 222],
+                    "posts" : [
+                        {"post_id": "post125", "content":"Hello world"}
+                        {"post_id": "post999", "content":"Bye World"}
+                    ]
+                },
+                {
+                    ...
+
+                }
+            ]
+
+        Column-based - 
+            stores data in columns instead of rows (stores data column by column)
+            allows for efficient querying and retireval, when dealing with large datasets
+            each column contains data of same type from multiple rows i.e all values of particular column are stored together
+            provide flexibility, Scalability and better performance over traditional row-based DBs in cases like
+            analytics, time-series data, where fast access is essential.
+            good for analytics where aggregations are required
+
+            Cassandra
+
+
+        Graph based - 
+            represent and store data using graph structures, with nodes(entities) and edges(relationships) that connect nodes
+            relationship between entities as important as entities themselves
+            facilitates efficient traversal and analysis of complex networks
+            good for highly connected data such as social networks 
+
+            Neo4J - popular graph based DB 
+            
+
+SQL vs NoSQL - 7
+    -Data stored in tables(rows&columns)
+        non-tabular storage
+    -Fixed schema
+        flexbile or schema-less 
+    -strong ACID properties
+        eventual consistency based
+    -uses primary/foreign keys
+        does not
+    -vertically scalable
+        horizontally scalable
+    -used in centralized systems
+        big distributed data
+    -eg MySQL, postgreSQL, Oracle
+        MongoDB, cassandra , redis, Neo4J
+
+    Eg - Amazon online shopping platform handles :
+        orders and payments
+            strict consistency needed, transactions have to be accurate, thus SQL to be used
+            ensures no inconsistencies by joins and foreign keys
+            (orders, payments, invoices, customer billing)
+        Product catalogs
+            as data is flexible(no fixed schema), massive and fast reading, NoSQL is needed here
+            (product catalogs, reviews & ratings, recommendations, activity logs)
+
+        thus, same platform but different database for different data
+
+    
+Case Study: Indian Railway Ticketing System & Big Data
+
+    Background
+    Indian Railways operates over 20,000 trains daily and serves more than 2 crore passengers.
+    IRCTC manages large-scale ticketing, seat availability checks, PNR updates, cancellations, and payments.
+    This generates massive data volumes at high speed and in multiple formats.
+
+    Task:
+    Identify the 3Vs
+    
+    Dataset:
+    Daily passengers: 2.3 crore
+    Trains: 20,000
+    Queries per minute: 5 lakh
+    Ticket types: General, Tatkal, Ladies, Senior citizen, Premium
+    Data sources: Website, Mobile app, Railway counters
+
+    Questions:
+    Which data represents Volume?
+        Daily passengers: 2.3 crore
+        20,000 trains operating daily
+    Which numbers show Velocity?
+        5 lakh queries per minute
+        Continuous ticket bookings, availability checks, and PNR updates in real time
+    Which elements show Variety?
+        Ticket types, Multiple data sources
+    Why is Indian Railways a Big Data problem?
+        because of 3V characteristics in the data
+
+    What data helps predict demand?
+        Historical structured Data (Past booking records, festival dates) to identify patterns for dates and routes
+        Historical Semi-structured data (Social media posts about travel trends, government announcements) give context for sudden demand strikes
+        real time data (seat occupancy, waiting list) to show current demand and availability
+    How can Big Data reduce waiting lists?
+        by predicting demand like above , add extra trains on high demand routes
+        detect fraud bulk booking and prevent it
+    Suggest one real-time data source.
+        The stream of data showing attempted and successful payment transactions for tickets.
+
+
+
+--------------------------------------------------------------------------------------------------------
 Replication in MongoDB - copy the data
     Diagram
 
@@ -102,3 +451,292 @@ diagram
 each shard is a replica set (data inside shard is replicated)
 together provides scalability + fault tolerance
 diagram (sharding + replication)
+
+
+Q - When to use hash based
+
+-------------------------------------------------------------------------------------------------------------
+Hadoop -   
+
+example
+    Day by day stock information for several symbols for several years
+    Problem - Find the Maximum Closing Price for each stock symbol in a 1 TB dataset
+    Bottleneck - 
+        Read Speed: At 122 MB/sec, it takes 2 hours 22 mins just to read the file from the disk.
+        Total Time: Reading (142 min) + Computing (60 min) + Network lag ... approx= 3+ Hours
+
+    Hadoop solves this using two main principles: Divide & Conquer and Data Locality
+    Parallel Processing - 
+        Split the 1TB file into 100 small blocks (10GB each)
+        Process all $100$ blocks parallelly on $100$ different nodes
+
+        Read Time: Drops from 150 mins to < 2 mins (150/100)
+        Computation Time: Drops from 60 mins to < 1 min (60/100)
+    
+    Data Locality - 
+        Old Way: Move data over the network to a central CPU (slow)
+        Hadoop Way: Move the computation (code) to the node, where the data (blocks) is already stored
+        much faster to send a few kbs of code over a network, than gbs of data
+
+example 2 - library with thousands of books spread across multiple
+branches in different locations. You need to count the number of books by each author.
+
+    method1 - 
+        Bringing all books to one central branch to count them
+        Central Collection: Physical movement of all books to one spot
+        Counting: One person/team counts everything
+        Returning: Moving all books back to original branches
+        Extremely slow due to the time and effort of moving heavy data (books) across the network
+    
+    method2 - 
+        Sending the "counting task" to each local branch
+        Each branch counts its own books on-site (Computation where data lives)
+        Aggregating Results: Branches send only the small summary (counts) to a central location
+        Much faster because books stay put; only small, lightweight results move
+
+
+HDFS - reliable shared storage +
+MapReduce - Distributed computation
+=
+Hadoop - 
+    Framework for distributed processing of large datasets 
+    accross clusters of commodity computers
+
+    open source programming framework for storing large amount of data and doing computation
+    based on java programming (C and shell scripts too)
+
+    Focus - concept of moving computation close to storage for better performance
+        reduces data transfer time by processing data on same node where its stored (data locality)
+
+    Traditional - 
+        uses Data transfer
+        data stored in central location
+        when computation to be d one, data has to be transferred to computation node
+        time-consuming and bandwidth-intensive
+    Hadoop - 
+        uses Data locality
+        splits large files into smaller blocks
+        distributes them among different nodes (HDFS)
+        each node has part of data, and computational resources to process it
+
+    Data locality implementation-
+        HDFS (Hadoop Distributed File systems) :
+            splits large files into smaller blocks
+            distributes them among different nodes in cluster
+            replicates each block (3 replicas) to ensure fault tolerance
+        MapReduce :
+            When a job submitted, Hadoop's JobTracker tries to assign tasks to nodes that already hold the required data blocks
+            if node has required data block, task runs, avoiding unnecessary data transfer
+        
+HDFS - 
+    splits large files into smaller blocks
+    distributes them among different nodes in cluster
+    replicates each block (3 replicas) to ensure fault tolerance
+
+    File system : 
+        controls how data is stored and retrieved
+        permissions, security and metadata
+        manages space efficiently
+        eg FAT32, NTFS, ext4
+
+        doesnt have info of data from another machine
+        doesnt have replication feature like that of HDFS
+
+    Benefits - 
+        supports parallel distributed processing
+        handles failures (replicates blocks)
+        scalable (can grow easily by adding more machines to the cluster)
+        cost effective (commodity hardware used)
+        If one node stops working, HDFS still works because copies of the blocks exist on other nodes.
+        Immutable in Nature (files usually not changed after being written)
+
+
+Architecture - 
+diagram
+    Hadoop has 2 nodes - Master/Primary/Name node & Data nodes
+
+    Master Node - stores meta data of all nodes (never stores data), maintains DNs 
+    Data Node - stores Actual data
+
+    eg
+        file "abc.txt" -> 500mb data
+        split into 4 blocks - B1: 128, B2: 128, B3: 128, B4: 116
+        (default block size in hadoop is 128mb)
+
+        DN1     DN2     DN3     DN4
+        B1      B2      B3      B4
+        such mapping stored in master (IP address stored, so master knows whats stored where)
+        client -> search abc.txt -> master -> searches & provides IP -> client
+
+        if data stored directly as such, data loss possible
+        thus store B1 copy in node 2,3,4 as well (replication)
+
+    but if master goes down, hadoop has secondary name node
+    Secondary Name node - 
+        diagram
+        metadata contains 
+            FSIMAGE - current SS of the system (File structure ss)
+            EDITLOG - all transactions like updates, deletes etc
+            FSIMAGE reads EDITLOG and updates current state of system
+        eg - 
+            fsimage -> abc.txt and xyz.txt
+            delete xyz.txt
+            recorded in EDITLOG
+            fsimage reads editlog and updates - fsimage iwhtout xyz.txt
+
+        Secondary NameNode periodically requests EditLogs from the NameNode
+        even Master contains such metadata (fsimage & editlogs); but with time, log sizes increases
+            and makes master slower
+        on failure, Master node updates its metadata from the FSIMAGE of secondary node
+
+Racks - 
+    collection of multiple servers
+    diagram
+        Suppose data comes from an IP around bangalore
+
+    Rack Awareness Algo - 
+        Each replica of a block to be stored on different rack
+            so if 1 rack fails, we dont loose everything
+        first replica in local rack (from where request came, eg bangalore)
+        next replica on another remote rack in another datanode
+
+
+Hadoop Read & Write -   
+    Write - 
+    diagram
+        pipeline setup
+            name node checks if file already exists, does user have permission, how many block needed
+            selects DN based on rack awareness algo, avaialble space, load balancing
+            sends client a list of avaialble DNs for each block
+            DNs in that list connect to one another in a chain, to form a pipeline
+        data streaming and replication
+            client -> DN1 -> DN2 -> DN3 ... all DN write data of block sent by client (thus replication)
+        pipeline shutdown (acknowledgement stage)
+            DN3 -> DN2 -> DN1 -> client ... ack sent by each DN to client
+            once client receives ack, block write is succesfull
+            name node updates which data written where (metadata)
+
+    Read - 
+        No need of multiple DNs (as reading doenst not need replication)
+        Name node decides which DN is free for read and client reads from that DN
+        NameNode provides a list of DataNodes (DNs) that store the blocks of that file
+
+
+
+------------------------------------------------------------------------------------------------------------
+MapReduce - 
+    computing paradigm for processing data residing on many computers
+    used for distributed computation
+    Traditional models work only on single machines; 
+    MapReduce is required when data is kept on multiple machines in a distributed manner
+
+    Both Map & Reduce work on (Key, Value) pairs
+
+    Record Reader -
+        input records are often not in (k,v) format
+        Converts raw input into (K, V) pairs for the Mapper
+            key: usually the position of line in file
+            value: actual line
+    
+    Combiner (Optional "Mini-Reducer") - 
+        function that summarizes Mapper output records, with the same key, before passing them to the Reducer
+        reduces network congestion by reducing amount of intermediate data sent across the cluster
+        runs after mapper and before reducer
+
+        when run MapReduce job on large datasets, large intermediate data generated by Mapper
+        this used to increase the network congestion, combiner solves this
+
+        diagram (for understanding)
+
+    
+    eg -
+        file1.txt -> 500mb (thousands of records)
+        to find count of each word
+
+        split into 4 blocks, each block on one node
+        
+        but, records arent (key,value) pairs
+        passed to record reader which converts to (k,v) pairs
+            key: 00, value:"Hello how are you" and so on
+        these pairs will be passed to Mapper
+            written by developer
+            ignores keys, splits values based on spaces
+            generates intermediate pairs like (Hello, 1), (how, 1), (are, 1), (Hello, 1)
+        reducer - 
+            written by developer
+            iterate through the list of "1"s for each word and sum them up
+            Resulting pairs like (Hello, 13), (how,  10) etc
+
+
+    Block vs Input Split - 
+        Physical partition of the file.
+            Logical partition of the file
+        contains actual raw data chunks (128 MB)
+            contains information on block addresses and record boundaries (pointers)
+        Fixed size; can cut a record in half if it doesnt fit
+            Identifies where the first whole record begins and the last ends
+            ensures a Mapper never receives a half-broken record
+        Number of blocks != Number of tasks
+            Number of Map tasks = Number of Input Splits
+        Block 1 might end with "Hello Wo" and Block 2 starts with "rld"
+            Input Splits fix this
+
+
+Replication Steps - 
+    C:\Program Files\MongoDB\Server\3.6\bin
+
+    data/db - delete
+    create new folders - rs1, rs2, rs3
+
+    open cmd (in admin mode)
+    check if path set correctly - > mongoD
+    Run server 1-
+    > start mongod --replSet ty --logpath \data\rs1\1.log --dbpath \data\rs1 
+        --port 27017 --oplogSize 64
+    (maxsize 64 bytes of the log)
+
+    new cmd admin mode
+    run server 2-
+    > start mongod --replSet ty --logpath \data\rs2\2.log --dbpath \data\rs2 
+        --port 27018 --oplogSize 64 
+
+    new cmd admin mode
+    run server 3-
+    > start mongod --replSet ty --logpath \data\rs3\3.log --dbpath \data\rs3
+        --port 27019 --oplogSize 64 
+
+    switch to server1 to connect to client server (all in own cmd)
+    > mongosh --port 27017
+    > mongosh --port 27018
+    > mongosh --port 27019
+
+    open server1
+        create configuration file listing replica set
+        > config = {
+            _id:"ty",
+            members:[
+                {_id:0, host:"localhost:27017"},
+                {_id:1, host:"localhost:27018"},
+                {_id:2, host:"localhost:27019"}
+            ]
+        }
+        initiating config file
+        > rs.initiate(config)
+
+        make server1 primary
+        > db.getMongo().setReadPref("primaryPreferred)
+
+        insert record
+        > db.student.insert(
+            {
+                "name": "John",
+                "class": "tyit"
+            }
+        )
+
+    open server2/3-
+        check replication
+        > db.student.find()
+
+        verify current node
+        > rs.status().myState
