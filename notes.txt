@@ -610,16 +610,17 @@ Hadoop Read & Write -
             sends client a list of avaialble DNs for each block
             DNs in that list connect to one another in a chain, to form a pipeline
         data streaming and replication
-            client -> DN1 -> DN2 -> DN3 ... all DN write data of block sent by client (thus replication)
+            client -> DN1 -> DN2 -> DN3 ... client sends to DN1
+            DN1 sends to DN2 and so on, these DNs(3) write data of block sent by client (thus replication)
         pipeline shutdown (acknowledgement stage)
             DN3 -> DN2 -> DN1 -> client ... ack sent by each DN to client
             once client receives ack, block write is succesfull
             name node updates which data written where (metadata)
 
     Read - 
-        No need of multiple DNs (as reading doenst not need replication)
-        Name node decides which DN is free for read and client reads from that DN
-        NameNode provides a list of DataNodes (DNs) that store the blocks of that file
+        Name node decides which DNs are free for read and client reads from those DNs
+        NameNode returns the list of DNs that contain replicas of each block
+        client chooses one of those DN replica (usually from nearest node) for each block
 
 
 
