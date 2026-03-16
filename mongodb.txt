@@ -1,0 +1,305 @@
+?? how to count the number of docs in output
+    use .countDocuments({}) instead of .find({})
+    db.rest.countDocuments({"dept": "IT"})
+
+mongod
+mongosh
+
+use examdb;
+
+db.createCollection("testing");
+
+db.testing.drop();
+db.dropDatabase()
+
+db.testing.insertOne({"name" : "amit", "age":25})    --> also creates a collection if it doesn't exist
+    .insertMany([{...}, {...}])
+
+db.testing.find()
+db.emp.find()
+
+mongoimport --db examdb --collection userpost --file "C:\Users\anujv\Desktop\College Work\BD_Mongo\post.json" --jsonArray
+mongoimport --db examdb  --collection rest --file "C:\Users\anujv\Desktop\College Work\BD_Mongo\restaurants.json"
+
+
+db.emp.find({"ename":"Joe"})
+
+    find first element
+    {"skills.0": "c++"}   --> |skills : ["c++", "python"] |
+
+    {"dept.loc.city": "Mumbai"}
+
+
+    {"sal" : {"$gt" : 20000}}
+    lt, gte, lte, ne 
+    between - {"sal" : {$gt:3000, $lt:7000}}
+
+    size - where the array length is exactly 0
+    db.userpost.find(
+        { comments: { $size: 0 } }
+    )
+
+    type - 
+    find where Coord field value is Double
+    db.rest.find({
+    "address.coord": { $type: "double" }
+    })
+
+    mod - 
+    db.rest.find({ "grades.score": { $mod: [7, 0] } })
+
+
+.updateOne(
+    {"ename":"Joe"}, 
+    {"$set": {"sal": 25000}}
+    )
+
+Update first skill  of ALL
+.updateMany({}, {"$set": {"skills.0": "python"}})
+also see POST practical Q11 (push and addToSet)
+    Q12 (pull)
+    Q13 (push entire comment element)
+
+
+AND
+    .find({
+        $and : [
+            {"dept" : "IT"},
+            {"sal" : {"$lt" : 30000}}
+            {$or : [{"ciyt" : "Mum"}, {"city" : "Delhi"}]}
+        ]
+    })
+
+    or
+    .find({
+        "dept" : "IT",
+        "sal" : {"$lt" : 30000},
+        $or : [{"ciyt" : "Mum"}, {"city" : "Delhi"}]
+    })
+
+Exist 
+    key "skills" exists or not
+    .find({"skills" : {"$exists" : true}})
+
+    .udateMany(
+        {"dept" : {$exists : true}},
+        {"$set": {"dept.budget": 0}}
+        )
+
+adding key 
+    .updateMany({}, {"$set": {"commission": 0}})
+
+unset - remove key
+    .updateMany({}, {"$unset": {"commission": ""}})
+    
+.find().sort({"sal" : -1})   --> Descending, 1 :ascending
+.find().sort({"sal" : -1}).limit(1)   --> Highest salary employee
+.find().sort({"sal" : -1}).skip(1)  --> Skips first document (highest salary)
+.limit(1).skip(1)   --> Second highest salary
+    Order in writing doesn’t change logical execution
+    mongodb processing order : sort > skip > limit
+
+delete - 
+    
+    deleting entire doc ??
+    db.userpost.deleteMany({ tags: "python" })
+    db.emp.deleteOne({ ename: "Joe" })
+
+    deleting entire collection??
+    db.emp.drop()
+
+display specific columns
+.find({}, {"ename" : 1, "sal" : 1, "_id" : 0})  --> 0 - hide, 1 - show
+
+
+
+Pipelining - any calculation or processing done inside []
+    Add 5000 bonus to all employees
+    .updateMany(
+        {"salary" : {"$exists" : true}},
+        [
+            { "$set": {
+                "salary": {"$add": ["$sal", 5000]}
+                }
+            }
+        ]
+    )
+    [] means its using aggregate
+    "$sal" -> actual value being used
+    wont it work without exisis check?
+
+    increment sal by 10%
+     "salary": {"$multiply": ["$salary", 1.1]}
+
+but, increase can also be done using 
+db.userpost.updateMany(
+    { tags: "python" },
+    { $inc: { likes: 10 } }
+)
+
+Pattern Matching - (more often used for single string values, not used on arrays like tags or comments etc)
+    .find(
+        {"ename" : /^d/}
+    )
+    name starting with d 
+
+    /a$/ --> ends with a
+    /a/ --> contains a
+    /Mumbai/i --> case insensitive
+    /a.*b/ --> any stirng where a before b
+    /a.d/  --> string containing a followed by exactly one character, then d
+    /^I.*a$/ --> starts with I and ends with a (. is for any character, * is for 0 or more times)
+
+
+
+
+
+POST examples
+
+fetch docs commented by user Ravi , with likes > 5
+    post.find(
+        {$and : [{"comments.user" : "Ravi"}, {"comments.likes" : {"$gt" : 5}}]}
+    )
+    problem - if multiple comments exist in the comments list 
+        it will check the user condition on one comment and ..likes on another comment
+        
+    .find({
+            "comments": {
+                $elemMatch:{
+                    "user":"Ravi", 
+                    "likes":{"$gt":5}
+                    }
+                }
+        })
+
+    elemMatch works only on arrays
+
+
+
+IN - 
+    .find({"dept" : {$in : ["IT", "HR"]}})
+
+    similar to 
+    .find({
+        $or : [
+            {"dept" : "IT"},
+            {"dept" : "HR"}
+        ]
+    }) ??
+
+    opp of this is $nin (Not IN)
+    dept matching none of the values in the list
+
+
+
+    
+Aggregation (grouping) -
+    $sum, $avg, $max, $min, $count
+
+    total salary spend by each dept 
+        emp.aggregate(
+            [
+                {
+                    $group : {
+                        _id : "$dept",
+                        "TotalSal" : {$sum : "$sal"}
+                    }
+                }
+            ]
+        )
+
+    total sal spend by all depts (per single document)
+        emp.aggregate(
+            [
+                {$group : {
+                    _id : null,
+                    "TotalSal" : {$sum : "$sal"}
+                }}
+            ]
+        )
+
+
+    only those depts with total_sal > 20000
+        emp.aggregate(
+        [
+            {
+                $group : {
+                    _id : "$dept",
+                    "TotalSal" : {$sum : "$sal"}
+                }
+            },
+            {
+                $match : {
+                    "TotalSal" : {"$gt" : 20000}
+                }
+            }
+        ]
+    )
+    
+    total sal only for HR and IT depts 
+        emp.aggregate(
+            [
+                {
+                    $match : {
+                        "dept" : {$in : ["HR", "IT"]}
+                    }
+                },
+                {
+                    $group : {
+                        _id : null,
+                        "TotalSal" : {$sum : "$sal"}
+                    }
+                }
+            ]
+        )
+
+    count of posts per author
+        db.userpost.aggregate(
+            [
+                {   
+                    $group : {
+                        _id: "$author",
+                        "total_posts" : {$count : {} }
+                    }
+                }
+            ]
+        )
+        or "total_posts" : {$sum: 1}   -- 1:add 1 for each post
+
+    overall max likes 
+        db.userpost.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    max_likes: { $max: "$likes" }
+                }
+            }
+        ]
+        )
+
+    List authors whose total likes across all their posts exceed 100.
+        db.userpost.aggregate(
+            [
+                {   
+                    $group : {
+                        _id: "$author",
+                        "total_likes" : { $sum : "$likes" }
+                    }
+                },
+                {
+                    $match : {
+                        "total_likes" : {$gt : 100}
+                    }
+                }
+            ]
+        )
+
+    Display each post’s title and number of comments
+    db.userpost.aggregate([
+    {
+        $group: {
+        _id: "$title",
+        "Comments count": { $sum: { $size: "$comments" } }
+        }
+    }
+    ])
